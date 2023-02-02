@@ -65,7 +65,7 @@ have specified `--humanize-after-sec 3600` the output will be
 <Meeting> in 30 minutes
 ```
 
-If you at 11:30 specified `--humaize-after` it will show
+If you at 11:30 specified `--humanize-after` it will show
 
 ```
 <Meeting> @12:00
