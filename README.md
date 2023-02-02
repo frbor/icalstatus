@@ -40,7 +40,7 @@ options:
   --no-verify           Ignore SSL verification errors
   --proxy PROXY         Proxy for ICS url
   --all                 Include events that are not today
-  --humanize-after HUMANIZE_AFTER
+  --humanize-after-sec HUMANIZE_AFTER
                         Humanize meeting date if less than this many seconds 
                         until meeting
   --alert-sec-before ALERT_SEC_BEFORE
@@ -59,7 +59,7 @@ no more event the same day). Specify `--all` to show all events.
 
 Meeting time will be show in "human format" if it less than this
 many seconds until the meeting. E.g. if the time is 11:30 and you
-have specified `--humaize-after 3600` the output will be
+have specified `--humanize-after-sec 3600` the output will be
 
 ```
 <Meeting> in 30 minutes
@@ -77,12 +77,12 @@ This option is only relevant for `icalwaybar`. If is is less than this
 many seconds to the meeting, it will use `class: alert`, otherwize
 `class: normal`. Examples (when running the command at 11:50):
 
-```json
+```
 icalwaybar --alert-sec-before 900
 {"text": "<Meeting> in 10 minutes", "class": "alert"}
 ```
 
-```json
+```
 icalwaybar --alert-sec-before 300
 {"text": "<Meeting> in 10 minutes", "class": "normal"}
 ```
