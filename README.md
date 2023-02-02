@@ -95,4 +95,4 @@ A tool to parse ics files and output summary to stdout is included:
 
 # Credits
 
-Original code/idea from Geir Skjøtskift (https://github.com/bunzen).
+Original code/idea from Geir Skjøtskift (https://github.com/geirskjo).
