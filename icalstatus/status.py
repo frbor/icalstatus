@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Statusbar ics calendar"""
 
-
 import html
 import json
 import sys
@@ -32,7 +31,7 @@ class Config(BaseModel):
     calendar_url: str = Field(description="URI for ICS Calendar")
     timezone: str = Field("CET", description="Timezone (default=CET)")
     no_verify: bool = Field(False, description="Ignore SSL verification errors")
-    proxy: str = Field(description="Proxy for ICS url")
+    proxy: Optional[str] = Field(description="Proxy for ICS url")
 
     all: bool = Field(False, description="Include events that are not today")
 
