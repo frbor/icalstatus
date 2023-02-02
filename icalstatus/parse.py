@@ -38,7 +38,7 @@ def main() -> None:
 
     config: Config = caep.load(Config, "ICAL parse", "icalstatus", "config", "parse")
 
-    data = open(config.file, "r").read()
+    data = open(config.file).read()
     parse(config, data)
 
 

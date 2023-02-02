@@ -15,7 +15,7 @@ To run, one of:
 
 ## Configuration
 
-For the status you must specify you calendar URL either on the commandline or in the 
+For the status you must specify you calendar URL either on the commandline or in the
 configuration file `~/.config/icalstatus/config`:
 
 E.g, for OWA:
@@ -41,10 +41,10 @@ options:
   --proxy PROXY         Proxy for ICS url
   --all                 Include events that are not today
   --humanize-after-sec HUMANIZE_AFTER
-                        Humanize meeting date if less than this many seconds 
+                        Humanize meeting date if less than this many seconds
                         until meeting
   --alert-sec-before ALERT_SEC_BEFORE
-                        Alert meeting at specified seconds before start. 
+                        Alert meeting at specified seconds before start.
                         This will switch class for output on waybar.
 ```
 

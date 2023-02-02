@@ -11,7 +11,7 @@ import arrow
 import caep
 import ics
 import requests
-from dateutil import rrule  # type: ignore
+from dateutil import rrule
 from pydantic import BaseModel, Field
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
