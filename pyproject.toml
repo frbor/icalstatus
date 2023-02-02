@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "icalstatus"
-version = "0.0.3"
+version = "0.0.4"
 description = "icalstatus"
 license = "ISC"
 classifiers = ["Development Status :: 4 - Beta", "Topic :: Utilities", "License :: OSI Approved :: ISC License (ISCL)"]

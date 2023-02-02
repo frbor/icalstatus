@@ -149,7 +149,7 @@ def upcoming_event() -> Optional[Event]:
         begin_str = f"@{begin.format('HH:mm')}"
 
     return Event(
-        name=next.name,
+        name=next.name.strip(),
         begin=begin_str,
         alert=now.shift(seconds=config.alert_sec_before) > begin,
     )
