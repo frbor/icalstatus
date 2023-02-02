@@ -1,0 +1,8 @@
+dist
+*.pyc
+.mypy_cache
+__pycache__
+*.swp
+.vscode
+.venv
+.ropeproject

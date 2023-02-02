@@ -1,0 +1,32 @@
+[tool]
+[tool.poetry]
+name = "icalstatus"
+version = "0.0.1"
+description = "icalstatus"
+license = "ISC"
+classifiers = ["Development Status :: 4 - Beta", "Topic :: Utilities", "License :: OSI Approved :: ISC License (ISCL)"]
+homepage = "https://github.com/frbor/icalstatus"
+authors = ["Fredrik Borg <fredrikb.borg@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+icalstatus = "icalstatus.status:status"
+icalwaybar = "icalstatus.status:waybar"
+icalparse = "icalstatus.parse:main"
+
+[tool.poetry.dependencies]
+python = "^3.9.0"
+caep = "~0.1.1"
+requests = "^2.28.1"
+ics = "^0.7.0"
+pytz = "*"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+pythonVersion = "3.9"
+pythonPlatform = "Linux"
