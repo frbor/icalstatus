@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "icalstatus"
-version = "0.0.2"
+version = "0.0.3"
 description = "icalstatus"
 license = "ISC"
 classifiers = ["Development Status :: 4 - Beta", "Topic :: Utilities", "License :: OSI Approved :: ISC License (ISCL)"]
@@ -20,13 +20,3 @@ caep = "~0.1.1"
 requests = "^2.28.1"
 ics = "^0.7.0"
 pytz = "*"
-
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
-
-reportMissingImports = true
-reportMissingTypeStubs = false
-
-pythonVersion = "3.9"
-pythonPlatform = "Linux"
