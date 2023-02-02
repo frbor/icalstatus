@@ -30,13 +30,13 @@ class Event:
 class Config(BaseModel):
 
     calendar_url: str = Field(description="URI for ICS Calendar")
-    timezone: str = Field("Europe/Oslo", description="Timezone")
+    timezone: str = Field("CET", description="Timezone (default=CET)")
     no_verify: bool = Field(False, description="Ignore SSL verification errors")
     proxy: str = Field(description="Proxy for ICS url")
 
     all: bool = Field(False, description="Include events that are not today")
 
-    humanize_after: int = Field(
+    humanize_after_sec: int = Field(
         3600,
         description="Humanize meeting date if less than "
         "this many seconds until meeting",
@@ -142,7 +142,7 @@ def upcoming_event() -> Optional[Event]:
 
     # If meeteing is soon to begin or we have chosen to include
     # meetings for the next days+, show time in "human format", e.g. `in 5 minutes`
-    if (now.shift(seconds=config.humanize_after) > begin) or (
+    if (now.shift(seconds=config.humanize_after_sec) > begin) or (
         now.date() != begin.date()
     ):
         begin_str = begin.humanize()
@@ -177,7 +177,7 @@ def waybar() -> None:
         json.dumps(
             {
                 "text": html.escape(f"{event.name} {event.begin}"),
-                "class": "private" if event.alert else "other",
+                "class": "alert" if event.alert else "normal",
             }
         )
     )
