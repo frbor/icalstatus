@@ -2,40 +2,42 @@
 
 
 import caep
-import ics
+import icalendar  # type: ignore
+import pytz
 from pydantic import BaseModel, Field
+
+from icalstatus.date import get_event_dt
 
 
 class Config(BaseModel):
-
-    timezone: str = Field("Europe/Oslo", description="Timezone")
+    timezone: str = Field("CET", description="Timezone")
     file: str = Field(description="File to parse")
 
 
 def parse(config: Config, data: str) -> None:
-    for e in ics.Calendar(data).events:
-        e.begin = e.begin.replace(tzinfo=config.timezone)
-        e.end = e.end.replace(tzinfo=config.timezone)
-        name = e.name if e.name else "Unknown"
-        organizer = e.organizer if e.organizer else "Unknown"
-        location = e.location if e.location else "Unknown"
-        description = e.description if e.description else "No description"
+    tzinfo = pytz.timezone(config.timezone)
+
+    cal = icalendar.Calendar.from_ical(data)
+    for e in cal.walk():
+        if not e.name == "VEVENT":
+            continue
+        begin = get_event_dt(e, tzinfo)
+        end = get_event_dt(e, tzinfo, "DTEND")
         print(
             f"""
-{name}
+{e.get('SUMMARY', 'Unknown')}
 
-Organizer: {organizer}
-Location: {location}
+Organizer: {e.get('ORGANIZER', 'Unknown')}
+Location: {e.get('LOCATION', 'Unknown')}
 
-Start: {e.begin}
-End:   {e.end}
+Start: {begin}
+End:   {end}
 
-{description}"""
+{e.get('DESCRIPTION', 'Unknown')}"""
         )
 
 
 def main() -> None:
-
     config: Config = caep.load(Config, "ICAL parse", "icalstatus", "config", "parse")
 
     data = open(config.file).read()
