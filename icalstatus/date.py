@@ -43,7 +43,7 @@ def humanize(seconds: Union[float, int]) -> str:
 def get_event_dt(
     event: icalendar.Event, tzinfo: pytz.BaseTzInfo, obj: str = "DTSTART"
 ) -> datetime:
-    dtstart = event["DTSTART"].dt
+    dtstart = event[obj].dt
 
     # convert date to datetime starting at midnight
     if not isinstance(dtstart, datetime):

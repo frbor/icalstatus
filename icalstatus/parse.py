@@ -10,7 +10,7 @@ from icalstatus.date import get_event_dt
 
 
 class Config(BaseModel):
-    timezone: str = Field("Europe/Oslo", description="Timezone")
+    timezone: str = Field("CET", description="Timezone")
     file: str = Field(description="File to parse")
 
 
@@ -19,6 +19,8 @@ def parse(config: Config, data: str) -> None:
 
     cal = icalendar.Calendar.from_ical(data)
     for e in cal.walk():
+        if not e.name == "VEVENT":
+            continue
         begin = get_event_dt(e, tzinfo)
         end = get_event_dt(e, tzinfo, "DTEND")
         print(
