@@ -1,13 +1,4 @@
 repos:
-  - repo: local
-    hooks:
-      - id: isort
-        name: isort
-        language: python
-        entry: isort
-        types: [python]
-        additional_dependencies: [isort==5.10.1]
-        args: ["--profile", "black"]
 
   - repo: local
     hooks:
@@ -16,7 +7,23 @@ repos:
         language: python
         entry: black
         types: [python]
-        additional_dependencies: [black==22.10.0]
+
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        language: python
+        entry: ruff
+        types: [python]
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        language: python
+        entry: pytest
+        types: [python]
+
 
   - repo: local
     hooks:
@@ -25,30 +32,8 @@ repos:
         language: python
         entry: mypy
         types: [python]
-        additional_dependencies: ["mypy==0.991", "pydantic", "requests"]
-        args: [".", "--strict", "--install-types", "--non-interactive"]
-        pass_filenames: false
-        always_run: true
+        args: ["--strict"]
 
-  - repo: local
-    hooks:
-      - id: pyupgrade
-        name: pyupgrade
-        language: python
-        entry: pyupgrade
-        types: [python]
-        args: ["--py38-plus"]
-        additional_dependencies: [pyupgrade==3.1.0]
-
-  - repo: local
-    hooks:
-      - id: flake8
-        name: flake8
-        language: python
-        entry: flake8
-        types: [python]
-        args: [--max-line-length=88]
-        additional_dependencies: [flake8==5.0.4]
 
   - repo: local
     hooks:
@@ -57,14 +42,14 @@ repos:
         entry: trailing-whitespace-fixer
         language: python
         types: [text]
-        additional_dependencies: [pre-commit-hooks==4.0.1]
+        additional_dependencies: [pre-commit-hooks==4.4.0]
 
       - id: end-of-file-fixer
         name: end-of-file-fixer
         entry: end-of-file-fixer
         language: python
         types: [text]
-        additional_dependencies: [pre-commit-hooks==4.0.1]
+        additional_dependencies: [pre-commit-hooks==4.4.0]
 
       - id: check-json
         name: check-json
@@ -72,7 +57,7 @@ repos:
         language: python
         exclude: kafka-dump.json
         types: [json]
-        additional_dependencies: [pre-commit-hooks==4.0.1]
+        additional_dependencies: [pre-commit-hooks==4.4.0]
 
       - id: check-added-large-files
         name: check-added-large-files
@@ -80,11 +65,11 @@ repos:
         exclude: kafka-dump.json
         language: python
         types: [file]
-        additional_dependencies: [pre-commit-hooks==4.0.1]
+        additional_dependencies: [pre-commit-hooks==4.4.0]
 
       - id: debug-statements
         name: debug-statements
         entry: debug-statement-hook
         language: python
         types: [python]
-        additional_dependencies: [pre-commit-hooks==4.0.1]
+        additional_dependencies: [pre-commit-hooks==4.4.0]

@@ -5,16 +5,21 @@ import html
 import json
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Optional
 
-import arrow
 import caep
-import ics
+import icalendar  # type: ignore
+import pytz
+import recurring_ical_events  # type: ignore
 import requests
-from dateutil import rrule
+
+# from dateutil import rrule
 from pydantic import BaseModel, Field
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
+
+from icalstatus.date import get_event_dt, humanize
 
 disable_warnings(InsecureRequestWarning)
 
@@ -27,7 +32,6 @@ class Event:
 
 
 class Config(BaseModel):
-
     calendar_url: str = Field(description="URI for ICS Calendar")
     timezone: str = Field("CET", description="Timezone (default=CET)")
     no_verify: bool = Field(False, description="Ignore SSL verification errors")
@@ -58,52 +62,39 @@ def get_data(url: str, no_verify: bool, proxy_string: Optional[str]) -> str:
     return req.text
 
 
-def is_recurring(event: ics.Event) -> bool:
-    """Check if it is a recurring event"""
+def get_next_datetime(
+    recurring_event: icalendar.Event, now: datetime, tzinfo: pytz.BaseTzInfo
+) -> Optional[datetime]:
+    begin = None
+    for event in recurring_ical_events.of(recurring_event).between(
+        now - timedelta(minutes=5), now + timedelta(days=7)
+    ):
+        begin = get_event_dt(event, tzinfo)
 
-    return any(filter(lambda x: x.name == "RRULE", event.extra))  # type: ignore
-
-
-def get_rrule(event: ics.Event) -> tuple[str, bool]:
-    """Extract the rrule text from an event"""
-
-    for extra in event.extra:
-        if extra.name == "RRULE":
-            return extra.value, True
-
-    return "", False
+    return begin
 
 
-def get_next_datetime(event: ics.Event, now: arrow) -> arrow.Arrow:
-    """Check if it is a recurring event, and if so get next event time"""
-
-    if is_recurring(event):
-
-        ruletext, ok = get_rrule(event)
-        if not ok:
-            return event.begin
-        rule = rrule.rrulestr(ruletext, dtstart=event.begin.datetime)
-        nextrule = rule.after(now.datetime)
-        if not nextrule:
-            return event.begin
-        return arrow.get(nextrule)
-
-    return event.begin
-
-
-def ics_next_event(ics_data: str, now: arrow, timezone: str) -> Optional[ics.Event]:
+def ics_next_event(
+    ics_data: str, now: datetime, tzinfo: pytz.BaseTzInfo
+) -> Optional[icalendar.Event]:
     curr = None
     diff = None
 
-    cal = ics.Calendar(ics_data)
+    cal = icalendar.Calendar.from_ical(ics_data)
 
     event = None
-    for event in cal.events:
-        # Set correct timezone
-        event.begin = event.begin.replace(tzinfo=timezone)
-        if event.begin.datetime < now:
-            if is_recurring(event):
-                nextrule = get_next_datetime(event, now)
+    for event in cal.walk():
+        if not event.name == "VEVENT":
+            continue
+
+        begin = get_event_dt(event, tzinfo)
+
+        if begin < now:
+            if event.get("RRULE"):
+                nextrule = get_next_datetime(event, now, tzinfo)
+                if not nextrule:
+                    continue
+
                 if nextrule < now:
                     continue
                 thisdiff = nextrule - now
@@ -111,8 +102,10 @@ def ics_next_event(ics_data: str, now: arrow, timezone: str) -> Optional[ics.Eve
                     diff = thisdiff
                     curr = event
             continue
-        thisdiff = event.begin.datetime - now
-        if not curr or thisdiff < diff:
+
+        thisdiff = begin - now
+
+        if not curr or (diff and (thisdiff < diff)):
             diff = thisdiff
             curr = event
 
@@ -124,34 +117,36 @@ def upcoming_event() -> Optional[Event]:
 
     config: Config = caep.load(Config, "ICAL Status", "icalstatus", "config", "status")
 
-    now = arrow.now().replace(tzinfo=config.timezone)
+    # now = arrow.now().replace(tzinfo=config.timezone)
+    tzinfo = pytz.timezone(config.timezone)
+    now = datetime.now().replace(tzinfo=tzinfo)
     next = ics_next_event(
         get_data(config.calendar_url, config.no_verify, config.proxy),
         now,
-        config.timezone,
+        tzinfo,
     )
 
     if not next:
         return None
 
-    begin = get_next_datetime(next, now).replace(tzinfo=config.timezone)
+    begin = get_event_dt(next, tzinfo)
 
     if (now.date() != begin.date()) and not config.all:
         return None
 
     # If meeteing is soon to begin or we have chosen to include
     # meetings for the next days+, show time in "human format", e.g. `in 5 minutes`
-    if (now.shift(seconds=config.humanize_after_sec) > begin) or (
+    if (now + timedelta(seconds=config.humanize_after_sec) > begin) or (
         now.date() != begin.date()
     ):
-        begin_str = begin.humanize()
+        begin_str = humanize((now - begin).seconds)
     else:
-        begin_str = f"@{begin.format('HH:mm')}"
+        begin_str = f"@{begin.strftime('%H:%M')}"
 
     return Event(
-        name=next.name.strip(),
+        name=next.get("SUMMARY", "Unknown").strip(),
         begin=begin_str,
-        alert=now.shift(seconds=config.alert_sec_before) > begin,
+        alert=now - timedelta(seconds=config.alert_sec_before) > begin,
     )
 
 
