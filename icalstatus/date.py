@@ -28,14 +28,14 @@ def humanize(seconds: Union[float, int]) -> str:
 
     if seconds >= 3600:
         hours = seconds // 3600
-        human_delta = f"{hours} hour{single(hours)}"
+        human_delta = f"{int(hours)} hour{single(hours)}"
 
     elif seconds >= 60:
         minutes = seconds // 60
-        human_delta = f"{minutes} minute{single(minutes)}"
+        human_delta = f"{int(minutes)} minute{single(minutes)}"
 
     else:
-        human_delta = f"{seconds} second{single(seconds)}"
+        human_delta = f"{int(seconds)} second{single(seconds)}"
 
     return f"in {human_delta}" if future else f"{human_delta} ago"
 

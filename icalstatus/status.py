@@ -139,7 +139,7 @@ def upcoming_event() -> Optional[Event]:
     if (now + timedelta(seconds=config.humanize_after_sec) > begin) or (
         now.date() != begin.date()
     ):
-        begin_str = humanize((now - begin).seconds)
+        begin_str = humanize(begin.timestamp() - now.timestamp())
     else:
         begin_str = f"@{begin.strftime('%H:%M')}"
 
