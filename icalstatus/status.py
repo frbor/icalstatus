@@ -146,7 +146,7 @@ def upcoming_event() -> Optional[Event]:
     return Event(
         name=next.get("SUMMARY", "Unknown").strip(),
         begin=begin_str,
-        alert=now - timedelta(seconds=config.alert_sec_before) > begin,
+        alert=now + timedelta(seconds=config.alert_sec_before) > begin,
     )
 
 
