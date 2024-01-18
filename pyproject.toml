@@ -15,19 +15,19 @@ icalwaybar = "icalstatus.status:waybar"
 icalparse = "icalstatus.parse:main"
 
 [tool.poetry.dependencies]
-python = "^3.9.0"
-caep = "^0.1.8"
-requests = "^2.28.1"
-recurring-ical-events = "^2.0.0"
+python = "^3.11"
+caep = "^1.1.0"
+requests = "^2.31.0"
+recurring-ical-events = "^2.1.2"
 icalendar = "^5.0.0"
 pytz = "*"
 
 [tool.poetry.dev-dependencies]
-black = "^23.1.0"
+black = "^23.12.1"
 pytest = "^7.3.1"
 pre-commit = "^3.3.1"
-ruff = "^0.0.267"
-mypy = "^1.2.0"
+ruff = "^0.1.13"
+mypy = "^1.8.0"
 types-requests = "*"
 types-python-dateutil = "*"
 types-pytz = "*"
@@ -39,4 +39,4 @@ strict = true
 # pyflakes, pycodestyle, pyupgrade and isort
 select = ["F", "E", "W", "UP", "I001"]
 
-target-version = "py39"
+target-version = "py311"

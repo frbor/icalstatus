@@ -6,20 +6,20 @@ import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
 
 import caep
 import icalendar  # type: ignore
 import pytz
 import recurring_ical_events  # type: ignore
 import requests
-
-# from dateutil import rrule
 from pydantic import BaseModel, Field
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 
 from icalstatus.date import get_event_dt, humanize
+
+# from dateutil import rrule
+
 
 disable_warnings(InsecureRequestWarning)
 
@@ -35,9 +35,10 @@ class Config(BaseModel):
     calendar_url: str = Field(description="URI for ICS Calendar")
     timezone: str = Field("CET", description="Timezone (default=CET)")
     no_verify: bool = Field(False, description="Ignore SSL verification errors")
-    proxy: Optional[str] = Field(description="Proxy for ICS url")
+    proxy: str | None = Field(description="Proxy for ICS url")
 
-    all: bool = Field(False, description="Include events that are not today")
+    all: bool = Field(description="Include events that are not today")
+    debug: bool = Field(description="Add debug output")
 
     humanize_after_sec: int = Field(
         3600,
@@ -52,7 +53,7 @@ class Config(BaseModel):
     )
 
 
-def get_data(url: str, no_verify: bool, proxy_string: Optional[str]) -> str:
+def get_data(url: str, no_verify: bool, proxy_string: str | None) -> str:
     """Read the ics file from remote URL"""
 
     proxies = {"http": proxy_string, "https": proxy_string} if proxy_string else None
@@ -64,7 +65,7 @@ def get_data(url: str, no_verify: bool, proxy_string: Optional[str]) -> str:
 
 def get_next_datetime(
     recurring_event: icalendar.Event, now: datetime, tzinfo: pytz.BaseTzInfo
-) -> Optional[datetime]:
+) -> datetime | None:
     begin = None
     for event in recurring_ical_events.of(recurring_event).between(
         now - timedelta(minutes=5), now + timedelta(days=7)
@@ -74,9 +75,16 @@ def get_next_datetime(
     return begin
 
 
+def debug(config: Config, message: str) -> None:
+    if not config.debug:
+        return
+
+    print(f"DEBUG: {message}")
+
+
 def ics_next_event(
     ics_data: str, now: datetime, tzinfo: pytz.BaseTzInfo
-) -> Optional[icalendar.Event]:
+) -> icalendar.Event | None:
     curr = None
     diff = None
 
@@ -112,7 +120,7 @@ def ics_next_event(
     return curr
 
 
-def upcoming_event() -> Optional[Event]:
+def upcoming_event() -> Event | None:
     """Get the next event closest in time"""
 
     config: Config = caep.load(Config, "ICAL Status", "icalstatus", "config", "status")
@@ -133,6 +141,9 @@ def upcoming_event() -> Optional[Event]:
 
     if (now.date() != begin.date()) and not config.all:
         return None
+
+    debug(config, f"begin: {begin.date()}")
+    debug(config, f"next: {next}")
 
     # If meeteing is soon to begin or we have chosen to include
     # meetings for the next days+, show time in "human format", e.g. `in 5 minutes`

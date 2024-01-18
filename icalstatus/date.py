@@ -1,15 +1,15 @@
 from datetime import datetime
-from typing import Union, cast
+from typing import cast
 
 import icalendar  # type: ignore
 import pytz
 
 
-def single(u: Union[int, float]) -> str:
+def single(u: int | float) -> str:
     return "" if u == 1 else "s"
 
 
-def humanize(seconds: Union[float, int]) -> str:
+def humanize(seconds: float | int) -> str:
     """
     Convert seconds to human format:
 

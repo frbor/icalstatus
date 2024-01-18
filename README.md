@@ -1,5 +1,10 @@
 # ICAL Status - Status bar for ICS Calenders
 
+# Changelog
+
+## 0.0.6
+- Require python 3.11+ and upgrade dependencies
+
 # Installation
 
 ```bash
