@@ -1,36 +1,44 @@
-[tool]
-[tool.poetry]
+[project]
 name = "icalstatus"
-version = "0.0.8"
+version = "0.0.9"
 description = "icalstatus"
-license = "ISC"
-classifiers = ["Development Status :: 4 - Beta", "Topic :: Utilities", "License :: OSI Approved :: ISC License (ISCL)"]
-homepage = "https://github.com/frbor/icalstatus"
-authors = ["Fredrik Borg <fredrikb.borg@gmail.com>"]
+authors = [{ name = "Fredrik Borg", email = "fredrikb.borg@gmail.com" }]
+requires-python = "~=3.11"
 readme = "README.md"
+license = "ISC"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: ISC License (ISCL)",
+]
+dependencies = [
+    "caep>=1.1.0,<2",
+    "requests>=2.31.0,<3",
+    "recurring-ical-events>=2.1.2,<3",
+    "icalendar>=5.0.0,<6",
+    "pytz",
+]
 
-[tool.poetry.scripts]
+[project.urls]
+Homepage = "https://github.com/frbor/icalstatus"
+
+[project.scripts]
 icalstatus = "icalstatus.status:status"
 icalwaybar = "icalstatus.status:waybar"
+icalexecutor = "icalstatus.status:executor"
 icalparse = "icalstatus.parse:main"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-caep = "^1.1.0"
-requests = "^2.31.0"
-recurring-ical-events = "^2.1.2"
-icalendar = "^5.0.0"
-pytz = "*"
-
-[tool.poetry.dev-dependencies]
-black = "^23.12.1"
-pytest = "^7.3.1"
-pre-commit = "^3.3.1"
-ruff = "^0.1.13"
-mypy = "^1.8.0"
-types-requests = "*"
-types-python-dateutil = "*"
-types-pytz = "*"
+[dependency-groups]
+dev = [
+    "pytest>=7.3.1,<8",
+    "pre-commit == 4.0.*",
+    "pre-commit-hooks == 4.6.*",
+    "ruff>=0.9,<1",
+    "mypy>=1.15.0,<2",
+    "types-requests",
+    "types-python-dateutil",
+    "types-pytz",
+]
 
 [tool.mypy]
 strict = true
@@ -40,3 +48,10 @@ strict = true
 select = ["F", "E", "W", "UP", "I001"]
 
 target-version = "py311"
+
+[tool.hatch.build.targets.wheel]
+include = ["icalstatus"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

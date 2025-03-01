@@ -53,6 +53,10 @@ class Config(BaseModel):
     )
 
 
+def remove_non_printable(value: str) -> str:
+    return "".join(i for i in value if i.isprintable())
+
+
 def get_data(url: str, no_verify: bool, proxy_string: str | None) -> str:
     """Read the ics file from remote URL"""
 
@@ -106,7 +110,7 @@ def ics_next_event(
                 if nextrule < now:
                     continue
                 thisdiff = nextrule - now
-                if not curr or thisdiff < diff:
+                if (not diff) or (not curr) or (thisdiff < diff):
                     diff = thisdiff
                     curr = event
             continue
@@ -186,6 +190,24 @@ def waybar() -> None:
             }
         )
     )
+    try:
+        sys.stdout.flush()
+    except BrokenPipeError:
+        pass
+
+
+def executor() -> None:
+    """
+    Output for Executor (Gnome Panel)
+    """
+
+    event = upcoming_event()
+
+    if not event:
+        return
+
+    print(f"{event.name} {event.begin}{'<executor.css.red>' if event.alert else ''}")
+
     try:
         sys.stdout.flush()
     except BrokenPipeError:

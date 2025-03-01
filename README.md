@@ -17,6 +17,7 @@ To run, one of:
 
 - `icalstatus`
 - `icalwaybar`
+- `icalexecutor`
 
 ## Configuration
 
@@ -91,6 +92,22 @@ icalwaybar --alert-sec-before 900
 icalwaybar --alert-sec-before 300
 {"text": "<Meeting> in 10 minutes", "class": "normal"}
 ```
+
+### Output specific formatting
+
+#### `icalexecutor`
+
+If the meeting is within `--alert-sec-before`, `<executor.css.output>` will be added to the output.
+
+This means that you can specify the CSS class `red` according to [https://raujonas.github.io/executor/docs/configuration/custom-css/](https://raujonas.github.io/executor/docs/configuration/custom-css/):
+
+```
+.red {
+    color: red;
+}
+```
+
+.e.g in `~/.config/executor@raujonas.github.io/custom.css`.
 
 # Parse
 
