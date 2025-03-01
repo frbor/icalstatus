@@ -97,7 +97,7 @@ icalwaybar --alert-sec-before 300
 
 #### `icalexecutor`
 
-If the meeting is within `--alert-sec-before`, `<executor.css.output>` will be added to the output.
+If the meeting is within `--alert-sec-before`, `<executor.css.red>` will be added to the output.
 
 This means that you can specify the CSS class `red` according to [https://raujonas.github.io/executor/docs/configuration/custom-css/](https://raujonas.github.io/executor/docs/configuration/custom-css/):
 

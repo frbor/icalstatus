@@ -1,6 +1,6 @@
 [project]
 name = "icalstatus"
-version = "0.0.9"
+version = "0.0.10"
 description = "icalstatus"
 authors = [{ name = "Fredrik Borg", email = "fredrikb.borg@gmail.com" }]
 requires-python = "~=3.11"
