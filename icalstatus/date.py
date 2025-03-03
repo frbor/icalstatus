@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import cast
+from zoneinfo import ZoneInfo
 
 import icalendar  # type: ignore
-import pytz
 
 
 def single(u: int | float) -> str:
@@ -41,7 +41,7 @@ def humanize(seconds: float | int) -> str:
 
 
 def get_event_dt(
-    event: icalendar.Event, tzinfo: pytz.BaseTzInfo, obj: str = "DTSTART"
+    event: icalendar.Event, tzinfo: ZoneInfo, obj: str = "DTSTART"
 ) -> datetime:
     dtstart = event[obj].dt
 

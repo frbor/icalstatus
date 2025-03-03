@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
 import caep
 import icalendar  # type: ignore
-import pytz
 from pydantic import BaseModel, Field
 
 from icalstatus.date import get_event_dt
@@ -14,7 +16,7 @@ class Config(BaseModel):
 
 
 def parse(config: Config, data: str) -> None:
-    tzinfo = pytz.timezone(config.timezone)
+    tzinfo = ZoneInfo(config.timezone)
 
     cal = icalendar.Calendar.from_ical(data)
     for e in cal.walk():
@@ -24,22 +26,22 @@ def parse(config: Config, data: str) -> None:
         end = get_event_dt(e, tzinfo, "DTEND")
         print(
             f"""
-{e.get('SUMMARY', 'Unknown')}
+{e.get("SUMMARY", "Unknown")}
 
-Organizer: {e.get('ORGANIZER', 'Unknown')}
-Location: {e.get('LOCATION', 'Unknown')}
+Organizer: {e.get("ORGANIZER", "Unknown")}
+Location: {e.get("LOCATION", "Unknown")}
 
 Start: {begin}
 End:   {end}
 
-{e.get('DESCRIPTION', 'Unknown')}"""
+{e.get("DESCRIPTION", "Unknown")}"""
         )
 
 
 def main() -> None:
     config: Config = caep.load(Config, "ICAL parse", "icalstatus", "config", "parse")
 
-    data = open(config.file).read()
+    data = Path(config.file).open().read()
     parse(config, data)
 
 

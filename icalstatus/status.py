@@ -6,22 +6,23 @@ import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import caep
 import icalendar  # type: ignore
-import pytz
 import recurring_ical_events  # type: ignore
 import requests
 from pydantic import BaseModel, Field
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 
-from icalstatus.date import get_event_dt, humanize
-
-# from dateutil import rrule
-
+from . import retry
+from .date import get_event_dt, humanize
 
 disable_warnings(InsecureRequestWarning)
+
+
+class CalendarParseError(Exception): ...
 
 
 @dataclass
@@ -68,12 +69,13 @@ def get_data(url: str, no_verify: bool, proxy_string: str | None) -> str:
 
 
 def get_next_datetime(
-    recurring_event: icalendar.Event, now: datetime, tzinfo: pytz.BaseTzInfo
+    recurring_event: icalendar.Event, now: datetime, tzinfo: ZoneInfo
 ) -> datetime | None:
     begin = None
     for event in recurring_ical_events.of(recurring_event).between(
         now - timedelta(minutes=5), now + timedelta(days=7)
     ):
+        # for event in recurring_ical_events.of(recurring_event).after(now):
         begin = get_event_dt(event, tzinfo)
 
     return begin
@@ -87,12 +89,16 @@ def debug(config: Config, message: str) -> None:
 
 
 def ics_next_event(
-    ics_data: str, now: datetime, tzinfo: pytz.BaseTzInfo
-) -> icalendar.Event | None:
+    ics_data: str, now: datetime, tzinfo: ZoneInfo
+) -> tuple[datetime | None, icalendar.Event | None]:
     curr = None
     diff = None
+    next_dt: datetime | None = None
 
-    cal = icalendar.Calendar.from_ical(ics_data)
+    try:
+        cal = icalendar.Calendar.from_ical(ics_data)
+    except ValueError as e:
+        raise CalendarParseError(e) from e
 
     event = None
     for event in cal.walk():
@@ -104,6 +110,7 @@ def ics_next_event(
         if begin < now:
             if event.get("RRULE"):
                 nextrule = get_next_datetime(event, now, tzinfo)
+
                 if not nextrule:
                     continue
 
@@ -113,6 +120,7 @@ def ics_next_event(
                 if (not diff) or (not curr) or (thisdiff < diff):
                     diff = thisdiff
                     curr = event
+                    next_dt = nextrule
             continue
 
         thisdiff = begin - now
@@ -120,8 +128,9 @@ def ics_next_event(
         if not curr or (diff and (thisdiff < diff)):
             diff = thisdiff
             curr = event
+            next_dt = begin
 
-    return curr
+    return next_dt, curr
 
 
 def upcoming_event() -> Event | None:
@@ -129,39 +138,44 @@ def upcoming_event() -> Event | None:
 
     config: Config = caep.load(Config, "ICAL Status", "icalstatus", "config", "status")
 
-    # now = arrow.now().replace(tzinfo=config.timezone)
-    tzinfo = pytz.timezone(config.timezone)
+    tzinfo = ZoneInfo(config.timezone)
     now = datetime.now().replace(tzinfo=tzinfo)
-    next = ics_next_event(
-        get_data(config.calendar_url, config.no_verify, config.proxy),
-        now,
-        tzinfo,
+
+    next_dt, next_event = retry.retry(
+        ics_next_event,  # type: ignore
+        args=[
+            get_data(config.calendar_url, config.no_verify, config.proxy),
+            now,
+            tzinfo,
+        ],
+        exception_classes=(
+            ConnectionError,
+            TimeoutError,
+            CalendarParseError,
+        ),
     )
-
-    if not next:
+    if (not next_event) or (not next_dt):
         return None
 
-    begin = get_event_dt(next, tzinfo)
-
-    if (now.date() != begin.date()) and not config.all:
+    if (now.date() != next_dt.date()) and not config.all:
         return None
 
-    debug(config, f"begin: {begin.date()}")
-    debug(config, f"next: {next}")
+    debug(config, f"begin: {next_dt.date()}")
+    debug(config, f"next_event: {next_event}")
 
     # If meeteing is soon to begin or we have chosen to include
     # meetings for the next days+, show time in "human format", e.g. `in 5 minutes`
-    if (now + timedelta(seconds=config.humanize_after_sec) > begin) or (
-        now.date() != begin.date()
+    if (now + timedelta(seconds=config.humanize_after_sec) > next_dt) or (
+        now.date() != next_dt.date()
     ):
-        begin_str = humanize(begin.timestamp() - now.timestamp())
+        begin_str = humanize(next_dt.timestamp() - now.timestamp())
     else:
-        begin_str = f"@{begin.strftime('%H:%M')}"
+        begin_str = f"@{next_dt.strftime('%H:%M')}"
 
     return Event(
-        name=next.get("SUMMARY", "Unknown").strip(),
+        name=next_event.get("SUMMARY", "Unknown").strip(),
         begin=begin_str,
-        alert=now + timedelta(seconds=config.alert_sec_before) > begin,
+        alert=now + timedelta(seconds=config.alert_sec_before) > next_dt,
     )
 
 
