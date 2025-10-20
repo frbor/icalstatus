@@ -2,6 +2,11 @@
 
 # Changelog
 
+## 0.1.0
+- Require python 3.12+
+- Upgrade dependencies
+- Fix bug in timezone handling
+
 ## 0.0.6
 - Require python 3.11+ and upgrade dependencies
 
