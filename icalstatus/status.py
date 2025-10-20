@@ -139,7 +139,7 @@ def upcoming_event() -> Event | None:
     config: Config = caep.load(Config, "ICAL Status", "icalstatus", "config", "status")
 
     tzinfo = ZoneInfo(config.timezone)
-    now = datetime.now().replace(tzinfo=tzinfo)
+    now = datetime.now().astimezone(tzinfo)
 
     next_dt, next_event = retry.retry(
         ics_next_event,  # type: ignore

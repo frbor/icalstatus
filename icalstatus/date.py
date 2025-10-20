@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import cast
 from zoneinfo import ZoneInfo
 
 import icalendar  # type: ignore
@@ -49,4 +48,4 @@ def get_event_dt(
     if not isinstance(dtstart, datetime):
         dtstart = datetime.combine(dtstart, datetime.min.time())
 
-    return cast(datetime, dtstart.replace(tzinfo=tzinfo))
+    return dtstart.astimezone(tzinfo)
