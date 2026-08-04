@@ -55,19 +55,19 @@ def test_calendar_entry_has_source_independent_status_rendering() -> None:
         {"exchange_server": "mail.example.com"},
         {
             "exchange_server": "mail.example.com",
-            "exchange_user": r"DOMAIN\fredrikb",
-            "exchange_mailbox": "fredrikb@example.com",
+            "exchange_user": r"DOMAIN\user",
+            "exchange_mailbox": "user@example.com",
         },
         {
             "exchange_server": "mail.example.com",
-            "exchange_user": r"DOMAIN\fredrikb",
+            "exchange_user": r"DOMAIN\user",
             "exchange_password_path": "work/exchange",
         },
         {
             "calendar_url": "https://example.com/calendar.ics",
             "exchange_server": "mail.example.com",
-            "exchange_user": r"DOMAIN\fredrikb",
-            "exchange_mailbox": "fredrikb@example.com",
+            "exchange_user": r"DOMAIN\user",
+            "exchange_mailbox": "user@example.com",
             "exchange_password_path": "work/exchange",
         },
     ],
@@ -84,8 +84,8 @@ def test_config_accepts_each_complete_source() -> None:
     config = Config.model_validate(
         {
             "exchange_server": "mail.example.com",
-            "exchange_user": r"DOMAIN\fredrikb",
-            "exchange_mailbox": "fredrikb@example.com",
+            "exchange_user": r"DOMAIN\user",
+            "exchange_mailbox": "user@example.com",
             "exchange_password_path": "work/exchange",
         }
     )
@@ -275,8 +275,8 @@ def test_ews_source_returns_normalized_entries(
 
     source = EwsCalendarSource(
         server="mail.example.com",
-        user=r"DOMAIN\fredrikb",
-        mailbox="fredrikb@example.com",
+        user=r"DOMAIN\user",
+        mailbox="user@example.com",
         password_path="work/exchange/user",
         timezone=UTC,
         no_verify=True,
@@ -287,12 +287,12 @@ def test_ews_source_returns_normalized_entries(
         CalendarEntry("Standup", datetime(2026, 8, 4, 10, tzinfo=UTC)),
         CalendarEntry("Unknown", datetime(2026, 8, 4, 11, tzinfo=UTC)),
     )
-    assert calls["credentials"] == (r"DOMAIN\fredrikb", "resolved-password")
+    assert calls["credentials"] == (r"DOMAIN\user", "resolved-password")
     configuration_call = cast(tuple[str, object, object], calls["configuration"])
     account_call = cast(dict[str, object], calls["account"])
     assert configuration_call[0] == "mail.example.com"
     assert account_call == {
-        "primary_smtp_address": "fredrikb@example.com",
+        "primary_smtp_address": "user@example.com",
         "config": configuration_call[2],
         "autodiscover": False,
         "access_type": vars(ews)["DELEGATE"],

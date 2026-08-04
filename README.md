@@ -43,8 +43,8 @@ For an on-premises Exchange server using EWS:
 ```ini
 [DEFAULT]
 exchange-server=mail.example.com
-exchange-user=DOMAIN\fredrikb
-exchange-mailbox=fredrikb@example.com
+exchange-user=DOMAIN\user
+exchange-mailbox=user@example.com
 exchange-password-path=work/exchange/user
 ```
 
