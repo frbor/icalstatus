@@ -46,6 +46,6 @@ def get_event_dt(
 
     # convert date to datetime starting at midnight
     if not isinstance(dtstart, datetime):
-        dtstart = datetime.combine(dtstart, datetime.min.time())
+        return datetime.combine(dtstart, datetime.min.time(), tzinfo=tzinfo)
 
     return dtstart.astimezone(tzinfo)
