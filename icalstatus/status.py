@@ -6,23 +6,16 @@ import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Self
 from zoneinfo import ZoneInfo
 
 import caep
-import icalendar  # type: ignore
-import recurring_ical_events  # type: ignore
-import requests
-from pydantic import BaseModel, Field
-from urllib3 import disable_warnings
-from urllib3.exceptions import InsecureRequestWarning
+from pydantic import BaseModel, Field, model_validator
 
-from . import retry
-from .date import get_event_dt, humanize
-
-disable_warnings(InsecureRequestWarning)
-
-
-class CalendarParseError(Exception): ...
+from .calendar import CalendarEntry, CalendarSource
+from .date import humanize
+from .ews import EwsCalendarSource
+from .ics import IcsCalendarSource
 
 
 @dataclass
@@ -33,52 +26,68 @@ class Event:
 
 
 class Config(BaseModel):
-    calendar_url: str = Field(description="URI for ICS Calendar")
-    timezone: str = Field("CET", description="Timezone (default=CET)")
-    no_verify: bool = Field(False, description="Ignore SSL verification errors")
-    proxy: str | None = Field(description="Proxy for ICS url")
+    calendar_url: str | None = Field(default=None, description="URI for ICS Calendar")
+    exchange_server: str | None = Field(
+        default=None, description="Exchange server hostname"
+    )
+    exchange_user: str | None = Field(
+        default=None, description="Exchange authentication username"
+    )
+    exchange_mailbox: str | None = Field(
+        default=None, description="Primary SMTP address of the Exchange mailbox"
+    )
+    exchange_password_path: str | None = Field(
+        default=None, description="gopass path containing the Exchange password"
+    )
+    timezone: str = Field(default="CET", description="Timezone (default=CET)")
+    no_verify: bool = Field(default=False, description="Ignore SSL verification errors")
+    proxy: str | None = Field(default=None, description="Proxy for ICS url")
 
-    all: bool = Field(description="Include events that are not today")
-    debug: bool = Field(description="Add debug output")
+    all: bool = Field(default=False, description="Include events that are not today")
+    debug: bool = Field(default=False, description="Add debug output")
 
     humanize_after_sec: int = Field(
-        3600,
+        default=3600,
         description="Humanize meeting date if less than "
         "this many seconds until meeting",
     )
 
     alert_sec_before: int = Field(
-        300,
+        default=300,
         description="Alert meeting at specified seconds before start. "
         "This will switch class for output on waybar.",
     )
 
+    @model_validator(mode="after")
+    def validate_calendar_source(self) -> Self:
+        exchange_values = (
+            self.exchange_server,
+            self.exchange_user,
+            self.exchange_mailbox,
+            self.exchange_password_path,
+        )
+        has_exchange_value = any(value is not None for value in exchange_values)
+        has_complete_exchange = all(
+            value is not None and bool(value.strip()) for value in exchange_values
+        )
+
+        if self.calendar_url is not None:
+            if not self.calendar_url.strip():
+                raise ValueError("calendar-url cannot be empty")
+            if has_exchange_value:
+                raise ValueError(
+                    "calendar-url and Exchange settings cannot be used together"
+                )
+        elif not has_complete_exchange:
+            raise ValueError(
+                "set calendar-url or all of exchange-server, exchange-user, "
+                "exchange-mailbox, and exchange-password-path"
+            )
+        return self
+
 
 def remove_non_printable(value: str) -> str:
     return "".join(i for i in value if i.isprintable())
-
-
-def get_data(url: str, no_verify: bool, proxy_string: str | None) -> str:
-    """Read the ics file from remote URL"""
-
-    proxies = {"http": proxy_string, "https": proxy_string} if proxy_string else None
-
-    req = requests.get(url, timeout=10, verify=(not no_verify), proxies=proxies)
-
-    return req.text
-
-
-def get_next_datetime(
-    recurring_event: icalendar.Event, now: datetime, tzinfo: ZoneInfo
-) -> datetime | None:
-    begin = None
-    for event in recurring_ical_events.of(recurring_event).between(
-        now - timedelta(minutes=5), now + timedelta(days=7)
-    ):
-        # for event in recurring_ical_events.of(recurring_event).after(now):
-        begin = get_event_dt(event, tzinfo)
-
-    return begin
 
 
 def debug(config: Config, message: str) -> None:
@@ -88,49 +97,62 @@ def debug(config: Config, message: str) -> None:
     print(f"DEBUG: {message}")
 
 
-def ics_next_event(
-    ics_data: str, now: datetime, tzinfo: ZoneInfo
-) -> tuple[datetime | None, icalendar.Event | None]:
-    curr = None
-    diff = None
-    next_dt: datetime | None = None
+def calendar_source(config: Config, timezone: ZoneInfo) -> CalendarSource:
+    if config.calendar_url is not None:
+        return IcsCalendarSource(
+            url=config.calendar_url,
+            timezone=timezone,
+            no_verify=config.no_verify,
+            proxy=config.proxy,
+        )
 
-    try:
-        cal = icalendar.Calendar.from_ical(ics_data)
-    except ValueError as e:
-        raise CalendarParseError(e) from e
+    if (
+        config.exchange_server is None
+        or config.exchange_user is None
+        or config.exchange_mailbox is None
+        or config.exchange_password_path is None
+    ):
+        raise ValueError("incomplete Exchange configuration")
+    return EwsCalendarSource(
+        server=config.exchange_server,
+        user=config.exchange_user,
+        mailbox=config.exchange_mailbox,
+        password_path=config.exchange_password_path,
+        timezone=timezone,
+        no_verify=config.no_verify,
+    )
 
-    event = None
-    for event in cal.walk():
-        if not event.name == "VEVENT":
-            continue
 
-        begin = get_event_dt(event, tzinfo)
+def next_calendar_entry(source: CalendarSource, now: datetime) -> CalendarEntry | None:
+    entries = source.entries(now, now + timedelta(days=7))
+    return min(
+        (entry for entry in entries if entry.start >= now),
+        key=lambda entry: entry.start,
+        default=None,
+    )
 
-        if begin < now:
-            if event.get("RRULE"):
-                nextrule = get_next_datetime(event, now, tzinfo)
 
-                if not nextrule:
-                    continue
+def status_event(config: Config, entry: CalendarEntry, now: datetime) -> Event | None:
+    if now.date() != entry.start.date() and not config.all:
+        return None
 
-                if nextrule < now:
-                    continue
-                thisdiff = nextrule - now
-                if (not diff) or (not curr) or (thisdiff < diff):
-                    diff = thisdiff
-                    curr = event
-                    next_dt = nextrule
-            continue
+    debug(config, f"begin: {entry.start.date()}")
+    debug(config, f"next_event: {entry}")
 
-        thisdiff = begin - now
+    # If the meeting is soon to begin or meetings on future days are included,
+    # show the time in human format, e.g. `in 5 minutes`.
+    if (now + timedelta(seconds=config.humanize_after_sec) > entry.start) or (
+        now.date() != entry.start.date()
+    ):
+        begin = humanize(entry.start.timestamp() - now.timestamp())
+    else:
+        begin = f"@{entry.start.strftime('%H:%M')}"
 
-        if not curr or (diff and (thisdiff < diff)):
-            diff = thisdiff
-            curr = event
-            next_dt = begin
-
-    return next_dt, curr
+    return Event(
+        name=entry.summary,
+        begin=begin,
+        alert=now + timedelta(seconds=config.alert_sec_before) > entry.start,
+    )
 
 
 def upcoming_event() -> Event | None:
@@ -141,42 +163,10 @@ def upcoming_event() -> Event | None:
     tzinfo = ZoneInfo(config.timezone)
     now = datetime.now().astimezone(tzinfo)
 
-    next_dt, next_event = retry.retry(
-        ics_next_event,  # type: ignore
-        args=[
-            get_data(config.calendar_url, config.no_verify, config.proxy),
-            now,
-            tzinfo,
-        ],
-        exception_classes=(
-            ConnectionError,
-            TimeoutError,
-            CalendarParseError,
-        ),
-    )
-    if (not next_event) or (not next_dt):
+    next_entry = next_calendar_entry(calendar_source(config, tzinfo), now)
+    if next_entry is None:
         return None
-
-    if (now.date() != next_dt.date()) and not config.all:
-        return None
-
-    debug(config, f"begin: {next_dt.date()}")
-    debug(config, f"next_event: {next_event}")
-
-    # If meeteing is soon to begin or we have chosen to include
-    # meetings for the next days+, show time in "human format", e.g. `in 5 minutes`
-    if (now + timedelta(seconds=config.humanize_after_sec) > next_dt) or (
-        now.date() != next_dt.date()
-    ):
-        begin_str = humanize(next_dt.timestamp() - now.timestamp())
-    else:
-        begin_str = f"@{next_dt.strftime('%H:%M')}"
-
-    return Event(
-        name=next_event.get("SUMMARY", "Unknown").strip(),
-        begin=begin_str,
-        alert=now + timedelta(seconds=config.alert_sec_before) > next_dt,
-    )
+    return status_event(config, next_entry, now)
 
 
 def status() -> None:

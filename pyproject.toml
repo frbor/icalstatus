@@ -1,6 +1,6 @@
 [project]
 name = "icalstatus"
-version = "0.1.0"
+version = "0.2.0"
 description = "icalstatus"
 authors = [{ name = "Fredrik Borg", email = "fredrikb.borg@gmail.com" }]
 requires-python = ">=3.12"
@@ -16,6 +16,7 @@ dependencies = [
     "requests>=2.31.0,<3",
     "recurring-ical-events>=3.5.2,<4",
     "icalendar>=6.0.0,<7",
+    "exchangelib==5.6.0",
 ]
 
 [project.urls]
@@ -43,7 +44,7 @@ strict = true
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [

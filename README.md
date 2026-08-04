@@ -26,8 +26,10 @@ To run, one of:
 
 ## Configuration
 
-For the status you must specify you calendar URL either on the commandline or in the
-configuration file `~/.config/icalstatus/config`:
+For the status you must configure exactly one calendar source, either on the command
+line or in the configuration file `~/.config/icalstatus/config`.
+
+For an ICS URL:
 
 E.g, for OWA:
 
@@ -35,6 +37,32 @@ E.g, for OWA:
 [DEFAULT]
 calendar-url=https://(HOST)/owa/calendar/(...)/calendar.ics
 ```
+
+For an on-premises Exchange server using EWS:
+
+```ini
+[DEFAULT]
+exchange-server=mail.example.com
+exchange-user=DOMAIN\user
+exchange-mailbox=user@example.com
+exchange-password-path=work/exchange/user
+```
+
+`exchange-server` is a hostname. `exchange-user` is the authentication username and
+may use the `DOMAIN\username` form expected by an on-premises server.
+`exchange-mailbox` is the mailbox's primary SMTP address. Authentication is detected
+by `exchangelib`. Calendar entries are fetched for the next seven days.
+
+The Exchange password is not stored in the configuration. Store it in
+[`gopass`](https://www.gopass.pw/) and configure only its secret path. The equivalent
+lookup performed by `icalstatus` is:
+
+```bash
+gopass show --password work/exchange/user
+```
+
+The `gopass` executable and an initialized, unlockable password store must be
+available in the environment where `icalstatus` runs.
 
 All options can be specified in the same configuration file and
 the other available options are:
@@ -47,6 +75,14 @@ options:
   -h, --help            show this help message and exit
   --calendar-url CALENDAR_URL
                         URI for ICS Calendar
+  --exchange-server EXCHANGE_SERVER
+                        Exchange server hostname
+  --exchange-user EXCHANGE_USER
+                        Exchange authentication username
+  --exchange-mailbox EXCHANGE_MAILBOX
+                        Primary SMTP address of the Exchange mailbox
+  --exchange-password-path EXCHANGE_PASSWORD_PATH
+                        gopass path containing the Exchange password
   --timezone TIMEZONE   Timezone (default=CET)
   --no-verify           Ignore SSL verification errors
   --proxy PROXY         Proxy for ICS url
