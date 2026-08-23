@@ -46,12 +46,18 @@ exchange-server=mail.example.com
 exchange-user=DOMAIN\user
 exchange-mailbox=user@example.com
 exchange-password-path=work/exchange/user
+location-strip-regex=^OSL\s*|\s*\(\d+\)$
 ```
 
 `exchange-server` is a hostname. `exchange-user` is the authentication username and
 may use the `DOMAIN\username` form expected by an on-premises server.
 `exchange-mailbox` is the mailbox's primary SMTP address. Authentication is detected
 by `exchangelib`. Calendar entries are fetched for the next seven days.
+When Exchange provides a calendar location, it is shown after the meeting subject in
+the form `Subject [Room]`. The OWA/ICS source behavior is unchanged.
+Use `location-strip-regex` to remove Exchange-specific prefixes or suffixes before
+the location is displayed. For example, `OSL Angler-802A (4)` becomes
+`Angler-802A` with the example above.
 
 The Exchange password is not stored in the configuration. Store it in
 [`gopass`](https://www.gopass.pw/) and configure only its secret path. The equivalent
@@ -83,6 +89,8 @@ options:
                         Primary SMTP address of the Exchange mailbox
   --exchange-password-path EXCHANGE_PASSWORD_PATH
                         gopass path containing the Exchange password
+  --location-strip-regex LOCATION_STRIP_REGEX
+                        Regex used to remove parts of Exchange meeting locations
   --timezone TIMEZONE   Timezone (default=CET)
   --no-verify           Ignore SSL verification errors
   --proxy PROXY         Proxy for ICS url

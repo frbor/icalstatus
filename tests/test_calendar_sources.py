@@ -48,6 +48,21 @@ def test_calendar_entry_has_source_independent_status_rendering() -> None:
     ) == Event(name="Standup", begin="in 4 minutes", alert=True)
 
 
+def test_status_event_includes_calendar_location() -> None:
+    now = datetime(2026, 8, 4, 9, tzinfo=UTC)
+    entry = CalendarEntry(
+        "Standup",
+        datetime(2026, 8, 4, 9, 4, tzinfo=UTC),
+        "Room Oslo",
+    )
+
+    assert status_event(
+        Config.model_validate({"calendar_url": "https://example.com/calendar.ics"}),
+        entry,
+        now,
+    ) == Event(name="Standup [Room Oslo]", begin="in 4 minutes", alert=True)
+
+
 @pytest.mark.parametrize(
     "values",
     [
@@ -90,6 +105,25 @@ def test_config_accepts_each_complete_source() -> None:
         }
     )
     assert config.exchange_server == "mail.example.com"
+
+
+def test_config_validates_location_strip_regex() -> None:
+    config = Config.model_validate(
+        {
+            "calendar_url": "https://example.com/calendar.ics",
+            "location_strip_regex": r"^OSL|\(\d+\)$",
+        }
+    )
+
+    assert config.location_strip_regex == r"^OSL|\(\d+\)$"
+
+    with pytest.raises(ValidationError):
+        Config.model_validate(
+            {
+                "calendar_url": "https://example.com/calendar.ics",
+                "location_strip_regex": "[",
+            }
+        )
 
 
 class FakeResponse:
@@ -211,6 +245,7 @@ def test_password_from_gopass_reports_safe_errors(
 class FakeEwsItem:
     subject: str | None
     start: datetime
+    location: str | None = None
 
 
 class FakeEwsItems:
@@ -245,8 +280,12 @@ def test_ews_source_returns_normalized_entries(
     end = datetime(2026, 8, 11, 9, tzinfo=UTC)
     items = FakeEwsItems(
         [
-            FakeEwsItem(None, datetime(2026, 8, 4, 11, tzinfo=UTC)),
-            FakeEwsItem(" Standup ", datetime(2026, 8, 4, 10, tzinfo=UTC)),
+            FakeEwsItem(None, datetime(2026, 8, 4, 11, tzinfo=UTC), " "),
+            FakeEwsItem(
+                " Standup ",
+                datetime(2026, 8, 4, 10, tzinfo=UTC),
+                "OSL Angler-802A (4)",
+            ),
         ]
     )
     calendar = FakeCalendar(items)
@@ -280,11 +319,16 @@ def test_ews_source_returns_normalized_entries(
         password_path="work/exchange/user",
         timezone=UTC,
         no_verify=True,
+        location_strip_regex=r"^OSL\s*|\s*\(\d+\)$",
     )
     entries = source.entries(start, end)
 
     assert entries == (
-        CalendarEntry("Standup", datetime(2026, 8, 4, 10, tzinfo=UTC)),
+        CalendarEntry(
+            "Standup",
+            datetime(2026, 8, 4, 10, tzinfo=UTC),
+            "Angler-802A",
+        ),
         CalendarEntry("Unknown", datetime(2026, 8, 4, 11, tzinfo=UTC)),
     )
     assert calls["credentials"] == (r"DOMAIN\user", "resolved-password")
@@ -298,5 +342,5 @@ def test_ews_source_returns_normalized_entries(
         "access_type": vars(ews)["DELEGATE"],
     }
     assert calendar.window == (start, end)
-    assert items.fields == ("subject", "start")
+    assert items.fields == ("subject", "start", "location")
     assert protocol.HTTP_ADAPTER_CLS is vars(ews)["NoVerifyHTTPAdapter"]

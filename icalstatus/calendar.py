@@ -10,6 +10,7 @@ class CalendarEntry:
 
     summary: str
     start: datetime
+    location: str | None = None
 
 
 class CalendarSource(Protocol):
