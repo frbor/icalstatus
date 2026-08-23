@@ -3,6 +3,7 @@
 
 import html
 import json
+import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -10,7 +11,7 @@ from typing import Self
 from zoneinfo import ZoneInfo
 
 import caep
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .calendar import CalendarEntry, CalendarSource
 from .date import humanize
@@ -39,6 +40,10 @@ class Config(BaseModel):
     exchange_password_path: str | None = Field(
         default=None, description="gopass path containing the Exchange password"
     )
+    location_strip_regex: str | None = Field(
+        default=None,
+        description="Regex used to remove parts of Exchange meeting locations",
+    )
     timezone: str = Field(default="CET", description="Timezone (default=CET)")
     no_verify: bool = Field(default=False, description="Ignore SSL verification errors")
     proxy: str | None = Field(default=None, description="Proxy for ICS url")
@@ -57,6 +62,18 @@ class Config(BaseModel):
         description="Alert meeting at specified seconds before start. "
         "This will switch class for output on waybar.",
     )
+
+    @field_validator("location_strip_regex")
+    @classmethod
+    def validate_location_strip_regex(cls, value: str | None) -> str | None:
+        if value is not None:
+            try:
+                re.compile(value)
+            except re.error as error:
+                raise ValueError(
+                    "location-strip-regex must be a valid regex"
+                ) from error
+        return value
 
     @model_validator(mode="after")
     def validate_calendar_source(self) -> Self:
@@ -120,6 +137,7 @@ def calendar_source(config: Config, timezone: ZoneInfo) -> CalendarSource:
         password_path=config.exchange_password_path,
         timezone=timezone,
         no_verify=config.no_verify,
+        location_strip_regex=config.location_strip_regex,
     )
 
 
@@ -148,8 +166,12 @@ def status_event(config: Config, entry: CalendarEntry, now: datetime) -> Event |
     else:
         begin = f"@{entry.start.strftime('%H:%M')}"
 
+    name = entry.summary
+    if entry.location is not None:
+        name = f"{name} [{entry.location}]"
+
     return Event(
-        name=entry.summary,
+        name=name,
         begin=begin,
         alert=now + timedelta(seconds=config.alert_sec_before) > entry.start,
     )
