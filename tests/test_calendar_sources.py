@@ -276,15 +276,17 @@ class FakeAccount:
 def test_ews_source_returns_normalized_entries(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    timezone_map = cast(dict[str, str], vars(ews)["MS_TIMEZONE_TO_IANA_MAP"])
+    monkeypatch.delitem(timezone_map, "", raising=False)
     start = datetime(2026, 8, 4, 9, tzinfo=UTC)
     end = datetime(2026, 8, 11, 9, tzinfo=UTC)
     items = FakeEwsItems(
         [
-            FakeEwsItem(None, datetime(2026, 8, 4, 11, tzinfo=UTC), " "),
+            FakeEwsItem(None, datetime(2026, 8, 4, 11, tzinfo=UTC), " ; \t"),
             FakeEwsItem(
                 " Standup ",
                 datetime(2026, 8, 4, 10, tzinfo=UTC),
-                "OSL Angler-802A (4)",
+                "OSL Melissa-1030; ; \t",
             ),
         ]
     )
@@ -323,11 +325,12 @@ def test_ews_source_returns_normalized_entries(
     )
     entries = source.entries(start, end)
 
+    assert timezone_map[""] == "UTC"
     assert entries == (
         CalendarEntry(
             "Standup",
             datetime(2026, 8, 4, 10, tzinfo=UTC),
-            "Angler-802A",
+            "Melissa-1030",
         ),
         CalendarEntry("Unknown", datetime(2026, 8, 4, 11, tzinfo=UTC)),
     )
