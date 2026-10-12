@@ -44,6 +44,16 @@ class Config(BaseModel):
         default=None,
         description="Regex used to remove parts of Exchange meeting locations",
     )
+    max_title_length: int = Field(
+        default=40,
+        ge=0,
+        description="Maximum meeting title characters, including ellipsis (0 disables)",
+    )
+    max_location_length: int = Field(
+        default=30,
+        ge=0,
+        description="Maximum location characters, including ellipsis (0 disables)",
+    )
     timezone: str = Field(default="CET", description="Timezone (default=CET)")
     no_verify: bool = Field(default=False, description="Ignore SSL verification errors")
     proxy: str | None = Field(default=None, description="Proxy for ICS url")
@@ -107,6 +117,12 @@ def remove_non_printable(value: str) -> str:
     return "".join(i for i in value if i.isprintable())
 
 
+def truncate(value: str, max_length: int) -> str:
+    if max_length == 0 or len(value) <= max_length:
+        return value
+    return value[: max_length - 1] + "…"
+
+
 def debug(config: Config, message: str) -> None:
     if not config.debug:
         return
@@ -166,9 +182,10 @@ def status_event(config: Config, entry: CalendarEntry, now: datetime) -> Event |
     else:
         begin = f"@{entry.start.strftime('%H:%M')}"
 
-    name = entry.summary
+    name = truncate(entry.summary, config.max_title_length)
     if entry.location is not None:
-        name = f"{name} [{entry.location}]"
+        location = truncate(entry.location, config.max_location_length)
+        name = f"{name} [{location}]"
 
     return Event(
         name=name,

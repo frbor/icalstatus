@@ -91,6 +91,10 @@ options:
                         gopass path containing the Exchange password
   --location-strip-regex LOCATION_STRIP_REGEX
                         Regex used to remove parts of Exchange meeting locations
+  --max-title-length MAX_TITLE_LENGTH
+                        Maximum meeting title characters, including ellipsis (0 disables)
+  --max-location-length MAX_LOCATION_LENGTH
+                        Maximum location characters, including ellipsis (0 disables)
   --timezone TIMEZONE   Timezone (default=CET)
   --no-verify           Ignore SSL verification errors
   --proxy PROXY         Proxy for ICS url
@@ -104,6 +108,33 @@ options:
 ```
 
 Options:
+
+### `max-title-length` and `max-location-length`
+
+Meeting titles are limited to **40 characters** and rooms/locations to
+**30 characters** by default in `icalstatus`, `icalwaybar`, and `icalexecutor`.
+Each value is shortened independently with a trailing `…`, which counts toward
+its limit. The location brackets and meeting time are outside these limits.
+Lengths count Unicode characters before Waybar HTML escaping.
+
+Set either option to `0` to disable its limit. Negative values are rejected.
+For example:
+
+```bash
+icalwaybar --max-title-length 50 --max-location-length 20
+icalstatus --max-title-length 0 --max-location-length 0
+```
+
+The same settings can be added to `~/.config/icalstatus/config` alongside your
+calendar source:
+
+```ini
+[DEFAULT]
+max-title-length=50
+max-location-length=20
+```
+
+These settings do not affect `icalparse`.
 
 ### `all`
 
